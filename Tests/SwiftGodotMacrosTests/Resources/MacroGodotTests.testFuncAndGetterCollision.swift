@@ -34,6 +34,7 @@ class OtherThing: SwiftGodot.Node {
         return SwiftGodotRuntime._wrapCallableResult(object.get_foo())
 
     }
+    @inline(always)
     static func _pproxy_get_foo(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -44,5 +45,22 @@ class OtherThing: SwiftGodot.Node {
         }
         SwiftGodotRuntime.RawReturnWriter.writeResult(returnValue, object.get_foo()) 
 
+    }
+    @inline(always)
+    static func _vproxy_get_foo(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 0, maximum: 0, error: callError, returnValue: returnValue) else { return }
+            guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+            SwiftGodotRuntime.GD.printErr("Error calling `get_foo`: failed to unwrap instance \(String(describing: pInstance))")
+            SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+        }
+        SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.get_foo()), into: returnValue)
+
+    SwiftGodotRuntime._callSucceeded(callError)
     }
 }

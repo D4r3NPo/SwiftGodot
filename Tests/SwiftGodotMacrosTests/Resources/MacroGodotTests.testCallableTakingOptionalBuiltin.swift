@@ -36,6 +36,7 @@ class OtherThing: SwiftGodot.Node {
 
         return nil
     }
+    @inline(always)
     static func _pproxy_do_string(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -51,6 +52,29 @@ class OtherThing: SwiftGodot.Node {
         } catch {
             SwiftGodotRuntime.GD.printErr("Error calling `do_string`: \(String(describing: error))")                    
         }
+    }
+    @inline(always)
+    static func _vproxy_do_string(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 1, maximum: 1, error: callError, returnValue: returnValue) else { return }
+        let arguments = SwiftGodotRuntime.Arguments(pargs: variantArgs, argc: argc)
+    do {
+                guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+                SwiftGodotRuntime.GD.printErr("Error calling `do_string`: failed to unwrap instance \(String(describing: pInstance))")
+                SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+            }
+            let arg0 = try arguments.argument(ofType: String?.self, at: 0)
+            SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.do_string(value: arg0)), into: returnValue)
+
+        SwiftGodotRuntime._callSucceeded(callError)
+    } catch {
+        SwiftGodotRuntime._callFailed(callError, returnValue: returnValue)
+    }
     }
 
     func do_int(value: Int?) {  }
@@ -70,6 +94,7 @@ class OtherThing: SwiftGodot.Node {
 
         return nil
     }
+    @inline(always)
     static func _pproxy_do_int(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -86,6 +111,29 @@ class OtherThing: SwiftGodot.Node {
             SwiftGodotRuntime.GD.printErr("Error calling `do_int`: \(String(describing: error))")                    
         }
     }
+    @inline(always)
+    static func _vproxy_do_int(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 1, maximum: 1, error: callError, returnValue: returnValue) else { return }
+        let arguments = SwiftGodotRuntime.Arguments(pargs: variantArgs, argc: argc)
+    do {
+                guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+                SwiftGodotRuntime.GD.printErr("Error calling `do_int`: failed to unwrap instance \(String(describing: pInstance))")
+                SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+            }
+            let arg0 = try arguments.argument(ofType: Int?.self, at: 0)
+            SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.do_int(value: arg0)), into: returnValue)
+
+        SwiftGodotRuntime._callSucceeded(callError)
+    } catch {
+        SwiftGodotRuntime._callFailed(callError, returnValue: returnValue)
+    }
+    }
 
     func get_thing() -> MyThing? {
         return nil
@@ -99,6 +147,7 @@ class OtherThing: SwiftGodot.Node {
         return SwiftGodotRuntime._wrapCallableResult(object.get_thing())
 
     }
+    @inline(always)
     static func _pproxy_get_thing(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -109,6 +158,23 @@ class OtherThing: SwiftGodot.Node {
         }
         SwiftGodotRuntime.RawReturnWriter.writeResult(returnValue, object.get_thing()) 
 
+    }
+    @inline(always)
+    static func _vproxy_get_thing(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 0, maximum: 0, error: callError, returnValue: returnValue) else { return }
+            guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+            SwiftGodotRuntime.GD.printErr("Error calling `get_thing`: failed to unwrap instance \(String(describing: pInstance))")
+            SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+        }
+        SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.get_thing()), into: returnValue)
+
+    SwiftGodotRuntime._callSucceeded(callError)
     }
 
     override open class var classInitializer: Void {
@@ -125,7 +191,7 @@ class OtherThing: SwiftGodot.Node {
             // ClassDB singleton is not available prior to `.scene` level
             assert(ClassDB.classExists(class: className))
         }
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "do_string",
             flags: .default,
@@ -133,17 +199,16 @@ class OtherThing: SwiftGodot.Node {
             arguments: [
                 SwiftGodotRuntime._argumentPropInfo(String?.self, name: "value")
             ],
-            function: OtherThing._mproxy_do_string,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                OtherThing._pproxy_do_string (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                OtherThing._vproxy_do_string(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                OtherThing._pproxy_do_string(instance, RawArguments(args: args), result)
             }
-
         )
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "do_int",
             flags: .default,
@@ -151,17 +216,16 @@ class OtherThing: SwiftGodot.Node {
             arguments: [
                 SwiftGodotRuntime._argumentPropInfo(Int?.self, name: "value")
             ],
-            function: OtherThing._mproxy_do_int,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                OtherThing._pproxy_do_int (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                OtherThing._vproxy_do_int(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                OtherThing._pproxy_do_int(instance, RawArguments(args: args), result)
             }
-
         )
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "get_thing",
             flags: .default,
@@ -169,15 +233,14 @@ class OtherThing: SwiftGodot.Node {
             arguments: [
 
             ],
-            function: OtherThing._mproxy_get_thing,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                OtherThing._pproxy_get_thing (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                OtherThing._vproxy_get_thing(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                OtherThing._pproxy_get_thing(instance, RawArguments(args: args), result)
             }
-
         )
     }
 }

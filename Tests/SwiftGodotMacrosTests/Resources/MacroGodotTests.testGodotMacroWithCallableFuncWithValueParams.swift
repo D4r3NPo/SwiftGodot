@@ -17,6 +17,7 @@ class MathHelper: Node {
 
         return nil
     }
+    @inline(always)
     static func _pproxy_multiply(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -33,6 +34,30 @@ class MathHelper: Node {
         } catch {
             SwiftGodotRuntime.GD.printErr("Error calling `multiply`: \(String(describing: error))")                    
         }
+    }
+    @inline(always)
+    static func _vproxy_multiply(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 2, maximum: 2, error: callError, returnValue: returnValue) else { return }
+        let arguments = SwiftGodotRuntime.Arguments(pargs: variantArgs, argc: argc)
+    do {
+                guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+                SwiftGodotRuntime.GD.printErr("Error calling `multiply`: failed to unwrap instance \(String(describing: pInstance))")
+                SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+            }
+            let arg0 = try arguments.argument(ofType: Int.self, at: 0)
+            let arg1 = try arguments.argument(ofType: Int.self, at: 1)
+            SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.multiply(arg0, by: arg1)), into: returnValue)
+
+        SwiftGodotRuntime._callSucceeded(callError)
+    } catch {
+        SwiftGodotRuntime._callFailed(callError, returnValue: returnValue)
+    }
     }
     func divide(_ a: Float, by b: Float) -> Float { a / b }
 
@@ -52,6 +77,7 @@ class MathHelper: Node {
 
         return nil
     }
+    @inline(always)
     static func _pproxy_divide(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -68,6 +94,30 @@ class MathHelper: Node {
         } catch {
             SwiftGodotRuntime.GD.printErr("Error calling `divide`: \(String(describing: error))")                    
         }
+    }
+    @inline(always)
+    static func _vproxy_divide(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 2, maximum: 2, error: callError, returnValue: returnValue) else { return }
+        let arguments = SwiftGodotRuntime.Arguments(pargs: variantArgs, argc: argc)
+    do {
+                guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+                SwiftGodotRuntime.GD.printErr("Error calling `divide`: failed to unwrap instance \(String(describing: pInstance))")
+                SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+            }
+            let arg0 = try arguments.argument(ofType: Float.self, at: 0)
+            let arg1 = try arguments.argument(ofType: Float.self, at: 1)
+            SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.divide(arg0, by: arg1)), into: returnValue)
+
+        SwiftGodotRuntime._callSucceeded(callError)
+    } catch {
+        SwiftGodotRuntime._callFailed(callError, returnValue: returnValue)
+    }
     }
     func areBothTrue(_ a: Bool, and b: Bool) -> Bool { a == b }
 
@@ -87,6 +137,7 @@ class MathHelper: Node {
 
         return nil
     }
+    @inline(always)
     static func _pproxy_areBothTrue(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -104,6 +155,30 @@ class MathHelper: Node {
             SwiftGodotRuntime.GD.printErr("Error calling `areBothTrue`: \(String(describing: error))")                    
         }
     }
+    @inline(always)
+    static func _vproxy_areBothTrue(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 2, maximum: 2, error: callError, returnValue: returnValue) else { return }
+        let arguments = SwiftGodotRuntime.Arguments(pargs: variantArgs, argc: argc)
+    do {
+                guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+                SwiftGodotRuntime.GD.printErr("Error calling `areBothTrue`: failed to unwrap instance \(String(describing: pInstance))")
+                SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+            }
+            let arg0 = try arguments.argument(ofType: Bool.self, at: 0)
+            let arg1 = try arguments.argument(ofType: Bool.self, at: 1)
+            SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.areBothTrue(arg0, and: arg1)), into: returnValue)
+
+        SwiftGodotRuntime._callSucceeded(callError)
+    } catch {
+        SwiftGodotRuntime._callFailed(callError, returnValue: returnValue)
+    }
+    }
 
     override open class var classInitializer: Void {
         let _ = super.classInitializer
@@ -119,7 +194,7 @@ class MathHelper: Node {
             // ClassDB singleton is not available prior to `.scene` level
             assert(ClassDB.classExists(class: className))
         }
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "multiply",
             flags: .default,
@@ -128,17 +203,16 @@ class MathHelper: Node {
                 SwiftGodotRuntime._argumentPropInfo(Int.self, name: "a"),
                 SwiftGodotRuntime._argumentPropInfo(Int.self, name: "b")
             ],
-            function: MathHelper._mproxy_multiply,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                MathHelper._pproxy_multiply (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                MathHelper._vproxy_multiply(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                MathHelper._pproxy_multiply(instance, RawArguments(args: args), result)
             }
-
         )
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "divide",
             flags: .default,
@@ -147,17 +221,16 @@ class MathHelper: Node {
                 SwiftGodotRuntime._argumentPropInfo(Float.self, name: "a"),
                 SwiftGodotRuntime._argumentPropInfo(Float.self, name: "b")
             ],
-            function: MathHelper._mproxy_divide,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                MathHelper._pproxy_divide (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                MathHelper._vproxy_divide(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                MathHelper._pproxy_divide(instance, RawArguments(args: args), result)
             }
-
         )
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "areBothTrue",
             flags: .default,
@@ -166,15 +239,14 @@ class MathHelper: Node {
                 SwiftGodotRuntime._argumentPropInfo(Bool.self, name: "a"),
                 SwiftGodotRuntime._argumentPropInfo(Bool.self, name: "b")
             ],
-            function: MathHelper._mproxy_areBothTrue,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                MathHelper._pproxy_areBothTrue (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                MathHelper._vproxy_areBothTrue(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                MathHelper._pproxy_areBothTrue(instance, RawArguments(args: args), result)
             }
-
         )
     }
 }

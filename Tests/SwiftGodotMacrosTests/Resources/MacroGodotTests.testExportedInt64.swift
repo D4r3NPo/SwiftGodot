@@ -32,6 +32,7 @@ class Thing: SwiftGodot.Object {
         return SwiftGodotRuntime._wrapCallableResult(object.get_some())
 
     }
+    @inline(always)
     static func _pproxy_get_some(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -42,6 +43,23 @@ class Thing: SwiftGodot.Object {
         }
         SwiftGodotRuntime.RawReturnWriter.writeResult(returnValue, object.get_some()) 
 
+    }
+    @inline(always)
+    static func _vproxy_get_some(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 0, maximum: 0, error: callError, returnValue: returnValue) else { return }
+            guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+            SwiftGodotRuntime.GD.printErr("Error calling `get_some`: failed to unwrap instance \(String(describing: pInstance))")
+            SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+        }
+        SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.get_some()), into: returnValue)
+
+    SwiftGodotRuntime._callSucceeded(callError)
     }
 
     override open class var classInitializer: Void {
@@ -72,7 +90,7 @@ class Thing: SwiftGodot.Object {
             getterFunction: Thing._mproxy_get_value,
             setterFunction: Thing._mproxy_set_value
         )
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "get_some",
             flags: .default,
@@ -80,15 +98,14 @@ class Thing: SwiftGodot.Object {
             arguments: [
 
             ],
-            function: Thing._mproxy_get_some,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                Thing._pproxy_get_some (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                Thing._vproxy_get_some(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                Thing._pproxy_get_some(instance, RawArguments(args: args), result)
             }
-
         )
     }
 }

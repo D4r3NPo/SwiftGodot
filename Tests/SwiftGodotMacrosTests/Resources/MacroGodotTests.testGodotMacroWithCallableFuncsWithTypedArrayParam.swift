@@ -18,6 +18,7 @@ class SomeNode: Node {
 
         return nil
     }
+    @inline(always)
     static func _pproxy_square(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -34,6 +35,29 @@ class SomeNode: Node {
             SwiftGodotRuntime.GD.printErr("Error calling `square`: \(String(describing: error))")                    
         }
     }
+    @inline(always)
+    static func _vproxy_square(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 1, maximum: 1, error: callError, returnValue: returnValue) else { return }
+        let arguments = SwiftGodotRuntime.Arguments(pargs: variantArgs, argc: argc)
+    do {
+                guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+                SwiftGodotRuntime.GD.printErr("Error calling `square`: failed to unwrap instance \(String(describing: pInstance))")
+                SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+            }
+            let arg0 = try arguments.argument(ofType: TypedArray<Int>.self, at: 0)
+            SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.square(arg0)), into: returnValue)
+
+        SwiftGodotRuntime._callSucceeded(callError)
+    } catch {
+        SwiftGodotRuntime._callFailed(callError, returnValue: returnValue)
+    }
+    }
 
     override open class var classInitializer: Void {
         let _ = super.classInitializer
@@ -49,7 +73,7 @@ class SomeNode: Node {
             // ClassDB singleton is not available prior to `.scene` level
             assert(ClassDB.classExists(class: className))
         }
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "square",
             flags: .default,
@@ -57,15 +81,14 @@ class SomeNode: Node {
             arguments: [
                 SwiftGodotRuntime._argumentPropInfo(TypedArray<Int>.self, name: "integers")
             ],
-            function: SomeNode._mproxy_square,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                SomeNode._pproxy_square (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                SomeNode._vproxy_square(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                SomeNode._pproxy_square(instance, RawArguments(args: args), result)
             }
-
         )
     }
 }

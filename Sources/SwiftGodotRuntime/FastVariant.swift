@@ -47,6 +47,8 @@ public struct VariantContent: Equatable {
 /// Sibling of ``Variant`` for cases where performance is critical.
 /// It doesn't require heap allocation but it's a move-only type so it's more cumbersome to work with.
 /// This type is guaranteed to contain a non-nil Godot Variant payload.
+// Generated callbacks in other modules need a fixed layout on the hot path.
+@frozen
 public struct FastVariant: ~Copyable {
     @usableFromInline
     var content: VariantContent
@@ -133,7 +135,7 @@ public struct FastVariant: ~Copyable {
     ///
     /// Call ``unsafelyForget()`` after you are done.
     @inline(__always)
-    @usableFromInline
+    @inlinable
     init?(unsafelyBorrowing borrowedContent: VariantContent) {
         guard !borrowedContent.isZero else {
             return nil

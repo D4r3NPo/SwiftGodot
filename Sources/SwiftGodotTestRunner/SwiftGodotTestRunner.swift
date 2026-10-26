@@ -70,7 +70,7 @@ struct SwiftGodotTestRunner {
         let projectPath = "Tests/SwiftGodotTestProject"
         let resultsPath = "Tests/SwiftGodotTestProject/test_results.json"
         let extensionTarget = "SwiftGodotTestExtension"
-        let buildConfiguration = "debug"
+        let buildConfiguration = CommandLine.arguments.contains("--release") ? "release" : "debug"
 
         print("SwiftGodot Test Runner")
         print(String(repeating: "=", count: 60))
@@ -98,6 +98,9 @@ struct SwiftGodotTestRunner {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: swiftPath)
             process.arguments = ["build", "--product", product, "-c", buildConfiguration]
+            if buildConfiguration == "release" {
+                process.arguments! += ["--traits", "testable"]
+            }
             process.currentDirectoryURL = URL(fileURLWithPath: cwd)
             process.standardOutput = FileHandle.standardOutput
             process.standardError = FileHandle.standardError

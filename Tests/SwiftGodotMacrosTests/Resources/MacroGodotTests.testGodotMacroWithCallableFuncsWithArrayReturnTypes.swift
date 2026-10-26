@@ -11,6 +11,7 @@ class CallableCollectionsNode: Node {
         return SwiftGodotRuntime._wrapCallableResult(object.get_ages())
 
     }
+    @inline(always)
     static func _pproxy_get_ages(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -21,6 +22,23 @@ class CallableCollectionsNode: Node {
         }
         SwiftGodotRuntime.RawReturnWriter.writeResult(returnValue, object.get_ages()) 
 
+    }
+    @inline(always)
+    static func _vproxy_get_ages(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 0, maximum: 0, error: callError, returnValue: returnValue) else { return }
+            guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+            SwiftGodotRuntime.GD.printErr("Error calling `get_ages`: failed to unwrap instance \(String(describing: pInstance))")
+            SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+        }
+        SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.get_ages()), into: returnValue)
+
+    SwiftGodotRuntime._callSucceeded(callError)
     }
     func get_markers() -> [Marker3D] {
         [.init(), .init(), .init()]
@@ -34,6 +52,7 @@ class CallableCollectionsNode: Node {
         return SwiftGodotRuntime._wrapCallableResult(object.get_markers())
 
     }
+    @inline(always)
     static func _pproxy_get_markers(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -44,6 +63,23 @@ class CallableCollectionsNode: Node {
         }
         SwiftGodotRuntime.RawReturnWriter.writeResult(returnValue, object.get_markers()) 
 
+    }
+    @inline(always)
+    static func _vproxy_get_markers(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 0, maximum: 0, error: callError, returnValue: returnValue) else { return }
+            guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+            SwiftGodotRuntime.GD.printErr("Error calling `get_markers`: failed to unwrap instance \(String(describing: pInstance))")
+            SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+        }
+        SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.get_markers()), into: returnValue)
+
+    SwiftGodotRuntime._callSucceeded(callError)
     }
 
     override open class var classInitializer: Void {
@@ -60,7 +96,7 @@ class CallableCollectionsNode: Node {
             // ClassDB singleton is not available prior to `.scene` level
             assert(ClassDB.classExists(class: className))
         }
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "get_ages",
             flags: .default,
@@ -68,17 +104,16 @@ class CallableCollectionsNode: Node {
             arguments: [
 
             ],
-            function: CallableCollectionsNode._mproxy_get_ages,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                CallableCollectionsNode._pproxy_get_ages (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                CallableCollectionsNode._vproxy_get_ages(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                CallableCollectionsNode._pproxy_get_ages(instance, RawArguments(args: args), result)
             }
-
         )
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "get_markers",
             flags: .default,
@@ -86,15 +121,14 @@ class CallableCollectionsNode: Node {
             arguments: [
 
             ],
-            function: CallableCollectionsNode._mproxy_get_markers,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                CallableCollectionsNode._pproxy_get_markers (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                CallableCollectionsNode._vproxy_get_markers(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                CallableCollectionsNode._pproxy_get_markers(instance, RawArguments(args: args), result)
             }
-
         )
     }
 }

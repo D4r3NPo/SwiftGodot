@@ -20,6 +20,7 @@ class Greeter: Node {
 
         return nil
     }
+    @inline(always)
     static func _pproxy_greet(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -38,6 +39,31 @@ class Greeter: Node {
             SwiftGodotRuntime.GD.printErr("Error calling `greet`: \(String(describing: error))")                    
         }
     }
+    @inline(always)
+    static func _vproxy_greet(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 1, maximum: 3, error: callError, returnValue: returnValue) else { return }
+        let arguments = SwiftGodotRuntime.Arguments(pargs: variantArgs, argc: argc)
+    do {
+                guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+                SwiftGodotRuntime.GD.printErr("Error calling `greet`: failed to unwrap instance \(String(describing: pInstance))")
+                SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+            }
+            let arg0 = try arguments.argument(ofType: String.self, at: 0)
+            let arg1 = arguments.count > 1 ? try arguments.argument(ofType: String.self, at: 1) : ("Hello" as String)
+            let arg2 = arguments.count > 2 ? try arguments.argument(ofType: Int.self, at: 2) : (1 as Int)
+            SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.greet(arg0, greeting: arg1, times: arg2)), into: returnValue)
+
+        SwiftGodotRuntime._callSucceeded(callError)
+    } catch {
+        SwiftGodotRuntime._callFailed(callError, returnValue: returnValue)
+    }
+    }
     func attach(to node: Node? = nil) {}
 
     static func _mproxy_attach(pInstance: UnsafeRawPointer?, arguments: borrowing SwiftGodotRuntime.Arguments) -> SwiftGodotRuntime.FastVariant? {
@@ -55,6 +81,7 @@ class Greeter: Node {
 
         return nil
     }
+    @inline(always)
     static func _pproxy_attach(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -71,6 +98,29 @@ class Greeter: Node {
             SwiftGodotRuntime.GD.printErr("Error calling `attach`: \(String(describing: error))")                    
         }
     }
+    @inline(always)
+    static func _vproxy_attach(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 0, maximum: 1, error: callError, returnValue: returnValue) else { return }
+        let arguments = SwiftGodotRuntime.Arguments(pargs: variantArgs, argc: argc)
+    do {
+                guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+                SwiftGodotRuntime.GD.printErr("Error calling `attach`: failed to unwrap instance \(String(describing: pInstance))")
+                SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+            }
+            let arg0 = arguments.count > 0 ? try arguments.argument(ofType: Node?.self, at: 0) : (nil as Node?)
+            SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.attach(to: arg0)), into: returnValue)
+
+        SwiftGodotRuntime._callSucceeded(callError)
+    } catch {
+        SwiftGodotRuntime._callFailed(callError, returnValue: returnValue)
+    }
+    }
 
     override open class var classInitializer: Void {
         let _ = super.classInitializer
@@ -86,7 +136,7 @@ class Greeter: Node {
             // ClassDB singleton is not available prior to `.scene` level
             assert(ClassDB.classExists(class: className))
         }
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "greet",
             flags: .default,
@@ -100,17 +150,16 @@ class Greeter: Node {
                 SwiftGodotRuntime._wrapDefaultArgument(SwiftGodotRuntime._wrapCallableResult("Hello" as String)),
                 SwiftGodotRuntime._wrapDefaultArgument(SwiftGodotRuntime._wrapCallableResult(1 as Int))
             ],
-            function: Greeter._mproxy_greet,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                Greeter._pproxy_greet (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                Greeter._vproxy_greet(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                Greeter._pproxy_greet(instance, RawArguments(args: args), result)
             }
-
         )
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "attach",
             flags: .default,
@@ -121,15 +170,14 @@ class Greeter: Node {
             defaultArguments: [
                 SwiftGodotRuntime._wrapDefaultArgument(SwiftGodotRuntime._wrapCallableResult(nil as Node?))
             ],
-            function: Greeter._mproxy_attach,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                Greeter._pproxy_attach (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                Greeter._vproxy_attach(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                Greeter._pproxy_attach(instance, RawArguments(args: args), result)
             }
-
         )
     }
 }

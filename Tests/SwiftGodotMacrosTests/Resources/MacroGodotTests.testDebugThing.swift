@@ -23,6 +23,7 @@ class DebugThing: SwiftGodot.Object {
 
         return nil
     }
+    @inline(always)
     static func _pproxy_do_thing(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -38,6 +39,29 @@ class DebugThing: SwiftGodot.Object {
         } catch {
             SwiftGodotRuntime.GD.printErr("Error calling `do_thing`: \(String(describing: error))")                    
         }
+    }
+    @inline(always)
+    static func _vproxy_do_thing(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 1, maximum: 1, error: callError, returnValue: returnValue) else { return }
+        let arguments = SwiftGodotRuntime.Arguments(pargs: variantArgs, argc: argc)
+    do {
+                guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+                SwiftGodotRuntime.GD.printErr("Error calling `do_thing`: failed to unwrap instance \(String(describing: pInstance))")
+                SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+            }
+            let arg0 = try arguments.argument(ofType: SwiftGodot.Variant?.self, at: 0)
+            SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.do_thing(value: arg0)), into: returnValue)
+
+        SwiftGodotRuntime._callSucceeded(callError)
+    } catch {
+        SwiftGodotRuntime._callFailed(callError, returnValue: returnValue)
+    }
     }
 
     override open class var classInitializer: Void {
@@ -55,7 +79,7 @@ class DebugThing: SwiftGodot.Object {
             assert(ClassDB.classExists(class: className))
         }
         SignalWithArguments<Swift.Int>.register(as: "lives_changed", in: className, names: [])
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "do_thing",
             flags: .default,
@@ -63,15 +87,14 @@ class DebugThing: SwiftGodot.Object {
             arguments: [
                 SwiftGodotRuntime._argumentPropInfo(SwiftGodot.Variant?.self, name: "value")
             ],
-            function: DebugThing._mproxy_do_thing,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                DebugThing._pproxy_do_thing (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                DebugThing._vproxy_do_thing(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                DebugThing._pproxy_do_thing(instance, RawArguments(args: args), result)
             }
-
         )
     }
 }

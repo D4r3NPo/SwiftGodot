@@ -408,5 +408,52 @@ final class MarshalTests {
 
         testNode.queueFree()
     }
+
+    public func testDecodedArrayArgumentSurvivesFailedConversion() {
+        let source = Variant("borrowed array string survives conversion failure")
+        let arguments = Arguments(from: [source])
+        do throws(ArgumentAccessError) {
+            _ = try arguments.argument(ofType: Node.self, at: 0)
+            fail("Expected an object conversion error")
+        } catch {
+            guard case .variantConversionError = error else {
+                fail("Unexpected error: \(error)")
+                return
+            }
+        }
+        assertEqual(try? arguments.argument(ofType: String.self, at: 0), "borrowed array string survives conversion failure")
+        assertEqual(source.to(String.self), "borrowed array string survives conversion failure")
+    }
+
+    public func testDecodedNativeArgumentSurvivesFailedConversion() {
+        let source = Variant("borrowed native string survives conversion failure")
+        withUnsafePointer(to: source.content) { content in
+            var pointer: UnsafeRawPointer? = UnsafeRawPointer(content)
+            withUnsafePointer(to: &pointer) { (pointers: UnsafePointer<UnsafeRawPointer?>) in
+                let arguments = Arguments(pargs: pointers, argc: 1)
+                do throws(ArgumentAccessError) {
+                    _ = try arguments.argument(ofType: Node?.self, at: 0)
+                    fail("Expected an optional object conversion error")
+                } catch {
+                    guard case .variantConversionError = error else {
+                        fail("Unexpected error: \(error)")
+                        return
+                    }
+                }
+                assertEqual(try? arguments.argument(ofType: String.self, at: 0), "borrowed native string survives conversion failure")
+                do throws(ArgumentAccessError) {
+                    _ = try arguments.argument(ofType: Node.self, at: -1)
+                    fail("Expected an index error")
+                } catch {
+                    guard case .indexOutOfBounds(index: -1, count: 1) = error else {
+                        fail("Unexpected error: \(error)")
+                        return
+                    }
+                }
+            }
+        }
+        assertEqual(source.to(String.self), "borrowed native string survives conversion failure")
+    }
+
 }
 

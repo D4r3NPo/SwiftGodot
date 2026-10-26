@@ -228,7 +228,11 @@ func extension_deinitialize(userData: UnsafeMutableRawPointer?, l: GDExtensionIn
     // Same as on the way in: `unregister` hands this token straight back to Godot, which
     // dereferences it as the `GDExtension` that owns the class.
     extensionInterface.setLibrary(userData)
+    // Unregistering classes releases default values and user state, which may
+    // enqueue more native references. Drain on both sides while ClassDB is alive.
+    releasePendingObjects()
     callback(level)
+    releasePendingObjects()
     if level == .core {
         // Last one, remove
         extensionDeInitCallbacks.removeValue(forKey: key)
@@ -315,6 +319,8 @@ func toCallErrorType(_ godotCallError: GDExtensionCallErrorType) -> CallErrorTyp
     public let  object_cast_to: GDExtensionInterfaceObjectCastTo
 
     public let  object_method_bind_ptrcall: GDExtensionInterfaceObjectMethodBindPtrcall
+    public let object_get_instance_id: GDExtensionInterfaceObjectGetInstanceId
+    public let object_get_instance_from_id: GDExtensionInterfaceObjectGetInstanceFromId
     public let  object_destroy: GDExtensionInterfaceObjectDestroy
     public let  object_has_script_method: GDExtensionInterfaceObjectHasScriptMethod?
     public let  object_call_script_method: GDExtensionInterfaceObjectCallScriptMethod?
@@ -481,6 +487,8 @@ func loadGodotInterface(_ godotGetProcAddrPtr: GDExtensionInterfaceGetProcAddres
         object_get_class_name: load("object_get_class_name"),
         object_cast_to: load("object_cast_to"),
         object_method_bind_ptrcall: load("object_method_bind_ptrcall"),
+        object_get_instance_id: load("object_get_instance_id"),
+        object_get_instance_from_id: load("object_get_instance_from_id"),
         object_destroy: load("object_destroy"),
 
         object_has_script_method: loadOptional("object_has_script_method"),

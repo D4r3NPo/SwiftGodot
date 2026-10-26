@@ -1,6 +1,8 @@
 import Foundation
 
 /// A type representing expected errors that can happen during parsing `Arguments` in the call-site
+// Generated callbacks in other modules need a fixed layout on the hot path.
+@frozen
 public enum ArgumentAccessError: Error, CustomStringConvertible {
     case indexOutOfBounds(index: Int, count: Int)
     case variantConversionError(VariantConversionError)
@@ -24,10 +26,13 @@ public enum ArgumentAccessError: Error, CustomStringConvertible {
 /// A lightweight non-copyable storage for arguments marshalled to implementations where a sequence of `Variant`s is expected.
 /// If you need a copy of `Variant`s inside, you can construct an array using `Array.init(_ args: borrowing Arguments)`
 /// Elements can be accessed using subscript operator.
+@frozen
 public struct Arguments: ~Copyable {
     @usableFromInline
+    @frozen
     enum Contents {
         @usableFromInline
+        @frozen
         struct UnsafeGodotArguments {
             @usableFromInline
             let pargs: UnsafePointer<UnsafeRawPointer?>
@@ -35,6 +40,12 @@ public struct Arguments: ~Copyable {
             @usableFromInline
             let count: Int
             
+            @inlinable
+            init(pargs: UnsafePointer<UnsafeRawPointer?>, count: Int) {
+                self.pargs = pargs
+                self.count = count
+            }
+
             var first: Variant?? {
                 try? copy(at: 0)
             }
@@ -159,8 +170,8 @@ public struct Arguments: ~Copyable {
     }
     
     @inline(__always)
-    @usableFromInline
-    init(pargs: UnsafePointer<UnsafeRawPointer?>?, argc: Int64) {
+    @inlinable
+    public init(pargs: UnsafePointer<UnsafeRawPointer?>?, argc: Int64) {
         if let pargs, argc > 0 {
             contents = .unsafeGodotArguments(.init(pargs: pargs, count: Int(argc)))
         } else {
@@ -322,6 +333,37 @@ public struct Arguments: ~Copyable {
         }
     }
         
+    // The throwing path returns the decoded value directly, without a Result container.
+    @inline(__always)
+    @inlinable
+    func withDecodedArgument<T>(
+        at index: Int,
+        use: (borrowing FastVariant?) throws(ArgumentAccessError) -> T
+    ) throws(ArgumentAccessError) -> T {
+        switch contents {
+        case .array(let array):
+            guard index >= 0 && index < array.count else {
+                throw .indexOutOfBounds(index: index, count: array.count)
+            }
+            let owner = array[index]
+            return try withExtendedLifetime(owner) { () throws(ArgumentAccessError) -> T in
+                var borrowed = owner.map { FastVariant(unsafelyBorrowing: $0.content) } ?? nil
+                defer { borrowed?.content = .zero }
+                return try use(borrowed)
+            }
+        case .unsafeGodotArguments(let args):
+            guard index >= 0 && index < args.count else {
+                throw .indexOutOfBounds(index: index, count: args.count)
+            }
+            guard let pointer = args.pargs[index] else {
+                return try use(nil)
+            }
+            var borrowed = FastVariant(unsafelyBorrowing: pointer.assumingMemoryBound(to: VariantContent.self).pointee)
+            defer { borrowed?.content = .zero }
+            return try use(borrowed)
+        }
+    }
+
     /// Returns `T` value wrapped argument at `index`.
     ///
     /// Throws an error if:
@@ -330,8 +372,12 @@ public struct Arguments: ~Copyable {
     @inline(__always)
     @inlinable
     public func argument<T>(ofType type: T.Type = T.self, at index: Int) throws(ArgumentAccessError) -> T where T: VariantConvertible {
-        try withBorrowedFastVariant(at: index) { variantOrNil in
-            extract(T.self, from: variantOrNil)
+        try withDecodedArgument(at: index) { (variant: borrowing FastVariant?) throws(ArgumentAccessError) -> T in
+            do throws(VariantConversionError) {
+                return try T.fromFastVariantOrThrow(variant)
+            } catch {
+                throw .variantConversionError(error)
+            }
         }
     }
     
@@ -354,8 +400,15 @@ public struct Arguments: ~Copyable {
     @inlinable
     @_disfavoredOverload
     public func argument<T>(ofType type: T?.Type = T?.self, at index: Int) throws(ArgumentAccessError) -> T? where T: VariantConvertible {
-        try withBorrowedFastVariant(at: index) { variantOrNil in
-            extract(T?.self, from: variantOrNil)
+        try withDecodedArgument(at: index) { (variant: borrowing FastVariant?) throws(ArgumentAccessError) -> T? in
+            do throws(VariantConversionError) {
+                switch variant {
+                case .some(let value): return try T.fromFastVariantOrThrow(value)
+                case .none: return nil
+                }
+            } catch {
+                throw .variantConversionError(error)
+            }
         }
     }
     
@@ -388,7 +441,7 @@ public struct Arguments: ~Copyable {
         
         switch variantOrNil {
         case .some(let variant):
-            do {
+            do throws(VariantConversionError) {
                 return try T.fromFastVariantOrThrow(variant)
             } catch {
                 throw .variantConversionError(error)
@@ -405,13 +458,16 @@ public struct Arguments: ~Copyable {
 /// expected to be correct, and they will not be checked.
 ///
 /// You should generally not use this in your code
+@frozen
 public struct RawArguments: Sendable {
-    public var args: UnsafePointer<UnsafeRawPointer?>
-    public init (args: UnsafePointer<UnsafeRawPointer?>) {
+    public var args: UnsafePointer<UnsafeRawPointer?>!
+    @inlinable
+    public init (args: UnsafePointer<UnsafeRawPointer?>?) {
         self.args = args
     }
 
     // Generic overload for any enum with Int raw values
+    @inlinable
     public func fetchArgument<T>(at: Int) throws(ArgumentAccessError) -> T where T: RawRepresentable, T.RawValue == Int {
         // Replace this with however you obtain the raw value
         let raw = args[at]!.assumingMemoryBound(to: Int.self).pointee
@@ -423,6 +479,7 @@ public struct RawArguments: Sendable {
     }
 
     // Generic overload for any enum with Int64 raw values
+    @inlinable
     public func fetchArgument<T>(at: Int) throws(ArgumentAccessError) -> T where T: RawRepresentable, T.RawValue == Int64 {
         // Replace this with however you obtain the raw value
         let raw = args[at]!.assumingMemoryBound(to: Int.self).pointee
@@ -433,34 +490,28 @@ public struct RawArguments: Sendable {
         return value
     }
 
+    @inlinable
     public func fetchArgument<T: _GodotBridgeableBuiltin>(at index: Int) throws(ArgumentAccessError) -> T {
         try T._fromRawArgument(args[index]!)
     }
 
-    public func fetchArgument<T: Wrapped>(at: Int) throws(ArgumentAccessError) -> T? {
-        guard let value = args[at] else {
-            return nil
+    @inline(always)
+    @inlinable
+    public func fetchArgument<T: Object>(at: Int) throws(ArgumentAccessError) -> T? {
+        guard let slot = args[at] else { throw .godotCallingConventionError }
+        guard let handle = slot.load(as: GodotNativeObjectPointer?.self) else { return nil }
+        guard let object: T = getOrInitSwiftObject(nativeHandle: handle, ownership: .borrowed) else {
+            throw .couldNotSurfaceObject
         }
-        let ptr = value.assumingMemoryBound(to: UnsafeMutableRawPointer.self).pointee
-        return lookupLiveObject(handleAddress: ptr) as? T
+        return object
     }
 
-    // Like the above, but if it does not find, it fails
-    public func fetchArgument<T: Wrapped>(at: Int) throws(ArgumentAccessError) -> T {
-        guard let value = args[at] else {
-            // There was no object pointer passed
-            throw .godotCallingConventionError
-        }
-        let ptr = value.assumingMemoryBound(to: UnsafeMutableRawPointer.self).pointee
-        if let lookup = lookupLiveObject(handleAddress: ptr) {
-            if let value = lookup as? T {
-                return value
-            } else {
-                throw ArgumentAccessError.variantConversionError(VariantConversionError.unexpectedContent(requestedType: T.self, actualContent: lookup.godotClassName.description))
-            }
-        } else {
-            throw ArgumentAccessError.couldNotSurfaceObject
-        }
+    @inline(always)
+    @inlinable
+    public func fetchArgument<T: Object>(at: Int) throws(ArgumentAccessError) -> T {
+        let object: T? = try fetchArgument(at: at)
+        guard let object else { throw .couldNotSurfaceObject }
+        return object
     }
 
     public func fetchArgument(at: Int) throws(ArgumentAccessError) -> Variant {
@@ -485,94 +536,140 @@ public struct RawArguments: Sendable {
 // deinit methods, we make a copy, and then prevent the deinit from deallocating
 // by clearing the value
 public struct RawReturnWriter {
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Int) {
         target!.assumingMemoryBound(to: Int.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Int64) {
         target!.assumingMemoryBound(to: Int.self).pointee = Int(value)
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Int32) {
         target!.assumingMemoryBound(to: Int.self).pointee = Int(value)
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Int16) {
         target!.assumingMemoryBound(to: Int.self).pointee = Int(value)
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Int8) {
         target!.assumingMemoryBound(to: Int.self).pointee = Int(value)
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Double) {
         target!.assumingMemoryBound(to: Double.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Float) {
         target!.assumingMemoryBound(to: Double.self).pointee = Double(value)
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Vector2) {
         target!.assumingMemoryBound(to: Vector2.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Vector2i) {
         target!.assumingMemoryBound(to: Vector2i.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Vector3) {
         target!.assumingMemoryBound(to: Vector3.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Vector3i) {
         target!.assumingMemoryBound(to: Vector3i.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Vector4) {
         target!.assumingMemoryBound(to: Vector4.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Vector4i) {
         target!.assumingMemoryBound(to: Vector4i.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Plane) {
         target!.assumingMemoryBound(to: Plane.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Quaternion) {
         target!.assumingMemoryBound(to: Quaternion.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Rect2) {
         target!.assumingMemoryBound(to: Rect2.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Rect2i) {
         target!.assumingMemoryBound(to: Rect2i.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Transform2D) {
         target!.assumingMemoryBound(to: Transform2D.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: AABB) {
         target!.assumingMemoryBound(to: AABB.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Basis) {
         target!.assumingMemoryBound(to: Basis.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Transform3D) {
         target!.assumingMemoryBound(to: Transform3D.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Projection) {
         target!.assumingMemoryBound(to: Projection.self).pointee = value
     }
 
+    @inline(always)
+    @inlinable
     public static func writeResult(_ target: UnsafeMutableRawPointer?, _ value: Color) {
         target!.assumingMemoryBound(to: Color.self).pointee = value
     }

@@ -18,6 +18,7 @@ private class TestNode: Node {
 
         return nil
     }
+    @inline(always)
     static func _pproxy_foo(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -34,6 +35,29 @@ private class TestNode: Node {
             SwiftGodotRuntime.GD.printErr("Error calling `foo`: \(String(describing: error))")                    
         }
     }
+    @inline(always)
+    static func _vproxy_foo(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 1, maximum: 1, error: callError, returnValue: returnValue) else { return }
+        let arguments = SwiftGodotRuntime.Arguments(pargs: variantArgs, argc: argc)
+    do {
+                guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+                SwiftGodotRuntime.GD.printErr("Error calling `foo`: failed to unwrap instance \(String(describing: pInstance))")
+                SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+            }
+            let arg0 = try arguments.argument(ofType: Variant?.self, at: 0)
+            SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.foo(variant: arg0)), into: returnValue)
+
+        SwiftGodotRuntime._callSucceeded(callError)
+    } catch {
+        SwiftGodotRuntime._callFailed(callError, returnValue: returnValue)
+    }
+    }
 
     override open class var classInitializer: Void {
         let _ = super.classInitializer
@@ -49,7 +73,7 @@ private class TestNode: Node {
             // ClassDB singleton is not available prior to `.scene` level
             assert(ClassDB.classExists(class: className))
         }
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "foo",
             flags: .default,
@@ -57,15 +81,14 @@ private class TestNode: Node {
             arguments: [
                 SwiftGodotRuntime._argumentPropInfo(Variant?.self, name: "variant")
             ],
-            function: TestNode._mproxy_foo,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                TestNode._pproxy_foo (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                TestNode._vproxy_foo(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                TestNode._pproxy_foo(instance, RawArguments(args: args), result)
             }
-
         )
     }
 }

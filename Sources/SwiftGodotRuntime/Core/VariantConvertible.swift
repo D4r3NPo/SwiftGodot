@@ -8,6 +8,8 @@
 import GDExtension
 
 /// Error while trying to unwrap Variant
+// Generated callbacks in other modules need a fixed layout on the hot path.
+@frozen
 public enum VariantConversionError: Error, CustomStringConvertible, @unchecked Sendable {
     public var description: String {
         switch self {

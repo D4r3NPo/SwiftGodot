@@ -18,6 +18,7 @@ class MultiplayerNode: Node {
 
         return nil
     }
+    @inline(always)
     static func _pproxy_syncPosition(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -34,6 +35,29 @@ class MultiplayerNode: Node {
             SwiftGodotRuntime.GD.printErr("Error calling `syncPosition`: \(String(describing: error))")                    
         }
     }
+    @inline(always)
+    static func _vproxy_syncPosition(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 1, maximum: 1, error: callError, returnValue: returnValue) else { return }
+        let arguments = SwiftGodotRuntime.Arguments(pargs: variantArgs, argc: argc)
+    do {
+                guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+                SwiftGodotRuntime.GD.printErr("Error calling `syncPosition`: failed to unwrap instance \(String(describing: pInstance))")
+                SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+            }
+            let arg0 = try arguments.argument(ofType: Vector3.self, at: 0)
+            SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.syncPosition(arg0)), into: returnValue)
+
+        SwiftGodotRuntime._callSucceeded(callError)
+    } catch {
+        SwiftGodotRuntime._callFailed(callError, returnValue: returnValue)
+    }
+    }
 
 
     func defaultRpc() {
@@ -47,6 +71,7 @@ class MultiplayerNode: Node {
         return SwiftGodotRuntime._wrapCallableResult(object.defaultRpc())
 
     }
+    @inline(always)
     static func _pproxy_defaultRpc(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -57,6 +82,23 @@ class MultiplayerNode: Node {
         }
         SwiftGodotRuntime.RawReturnWriter.writeResult(returnValue, object.defaultRpc()) 
 
+    }
+    @inline(always)
+    static func _vproxy_defaultRpc(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 0, maximum: 0, error: callError, returnValue: returnValue) else { return }
+            guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+            SwiftGodotRuntime.GD.printErr("Error calling `defaultRpc`: failed to unwrap instance \(String(describing: pInstance))")
+            SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+        }
+        SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.defaultRpc()), into: returnValue)
+
+    SwiftGodotRuntime._callSucceeded(callError)
     }
 
 
@@ -71,6 +113,7 @@ class MultiplayerNode: Node {
         return SwiftGodotRuntime._wrapCallableResult(object.fullConfig())
 
     }
+    @inline(always)
     static func _pproxy_fullConfig(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -81,6 +124,23 @@ class MultiplayerNode: Node {
         }
         SwiftGodotRuntime.RawReturnWriter.writeResult(returnValue, object.fullConfig()) 
 
+    }
+    @inline(always)
+    static func _vproxy_fullConfig(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 0, maximum: 0, error: callError, returnValue: returnValue) else { return }
+            guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+            SwiftGodotRuntime.GD.printErr("Error calling `fullConfig`: failed to unwrap instance \(String(describing: pInstance))")
+            SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+        }
+        SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.fullConfig()), into: returnValue)
+
+    SwiftGodotRuntime._callSucceeded(callError)
     }
 
     override open class var classInitializer: Void {
@@ -97,7 +157,7 @@ class MultiplayerNode: Node {
             // ClassDB singleton is not available prior to `.scene` level
             assert(ClassDB.classExists(class: className))
         }
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "syncPosition",
             flags: .default,
@@ -105,17 +165,16 @@ class MultiplayerNode: Node {
             arguments: [
                 SwiftGodotRuntime._argumentPropInfo(Vector3.self, name: "position")
             ],
-            function: MultiplayerNode._mproxy_syncPosition,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                MultiplayerNode._pproxy_syncPosition (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                MultiplayerNode._vproxy_syncPosition(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                MultiplayerNode._pproxy_syncPosition(instance, RawArguments(args: args), result)
             }
-
         )
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "defaultRpc",
             flags: .default,
@@ -123,17 +182,16 @@ class MultiplayerNode: Node {
             arguments: [
 
             ],
-            function: MultiplayerNode._mproxy_defaultRpc,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                MultiplayerNode._pproxy_defaultRpc (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                MultiplayerNode._vproxy_defaultRpc(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                MultiplayerNode._pproxy_defaultRpc(instance, RawArguments(args: args), result)
             }
-
         )
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "fullConfig",
             flags: .default,
@@ -141,15 +199,14 @@ class MultiplayerNode: Node {
             arguments: [
 
             ],
-            function: MultiplayerNode._mproxy_fullConfig,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                MultiplayerNode._pproxy_fullConfig (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                MultiplayerNode._vproxy_fullConfig(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                MultiplayerNode._pproxy_fullConfig(instance, RawArguments(args: args), result)
             }
-
         )
     }
 

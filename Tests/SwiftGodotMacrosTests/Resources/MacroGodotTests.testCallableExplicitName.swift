@@ -9,6 +9,7 @@ class TestClass: Node {
         return SwiftGodotRuntime._wrapCallableResult(object.originalName())
 
     }
+    @inline(always)
     static func _pproxy_originalName(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -19,6 +20,23 @@ class TestClass: Node {
         }
         SwiftGodotRuntime.RawReturnWriter.writeResult(returnValue, object.originalName()) 
 
+    }
+    @inline(always)
+    static func _vproxy_originalName(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 0, maximum: 0, error: callError, returnValue: returnValue) else { return }
+            guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+            SwiftGodotRuntime.GD.printErr("Error calling `originalName`: failed to unwrap instance \(String(describing: pInstance))")
+            SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+        }
+        SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.originalName()), into: returnValue)
+
+    SwiftGodotRuntime._callSucceeded(callError)
     }
 
     override open class var classInitializer: Void {
@@ -35,7 +53,7 @@ class TestClass: Node {
             // ClassDB singleton is not available prior to `.scene` level
             assert(ClassDB.classExists(class: className))
         }
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "testExplicitName",
             flags: .default,
@@ -43,15 +61,14 @@ class TestClass: Node {
             arguments: [
 
             ],
-            function: TestClass._mproxy_originalName,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                TestClass._pproxy_originalName (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                TestClass._vproxy_originalName(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                TestClass._pproxy_originalName(instance, RawArguments(args: args), result)
             }
-
         )
     }
 }

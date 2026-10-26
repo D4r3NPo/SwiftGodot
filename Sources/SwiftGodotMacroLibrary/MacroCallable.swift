@@ -64,6 +64,7 @@ public struct GodotCallable: PeerMacro {
         let firstDefaultIndex = parameterArray.count - trailingDefaultCount
 
         for (index, parameter) in parameters.enumerated() {
+            body += "\n"
             let ptype = parameter.type.trimmedDescription
 
             if index >= firstDefaultIndex, let defaultExpr = parameter.defaultValueExpr {
@@ -111,6 +112,7 @@ public struct GodotCallable: PeerMacro {
         
         ptrCallDecl = """
         
+        @inline(always)
         static func _pproxy_\(funcName)(        
         _ pInstance: UnsafeMutableRawPointer?,
         _ rargs: SwiftGodotRuntime.RawArguments,
@@ -119,11 +121,46 @@ public struct GodotCallable: PeerMacro {
         }
         """
 
+        let directBody = body.replacingOccurrences(
+            of: "return nil",
+            with: "SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return")
+            .replacingOccurrences(
+                of: "return SwiftGodotRuntime._wrapCallableResult(\(objectOrSelf).\(funcName)(\(callArgs)))",
+                with: "SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(\(objectOrSelf).\(funcName)(\(callArgs))), into: returnValue)")
+        let invocation: String
+        if parameters.isEmpty {
+            invocation = directBody + "\nSwiftGodotRuntime._callSucceeded(callError)"
+        } else {
+            invocation = """
+            let arguments = SwiftGodotRuntime.Arguments(pargs: variantArgs, argc: argc)
+            do {
+                \(directBody)
+                SwiftGodotRuntime._callSucceeded(callError)
+            } catch {
+                SwiftGodotRuntime._callFailed(callError, returnValue: returnValue)
+            }
+            """
+        }
+        let callbackDecl = """
+
+        @inline(always)
+        static func _vproxy_\(funcName)(
+            _ pInstance: UnsafeMutableRawPointer?,
+            _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+            _ argc: Int64,
+            _ returnValue: UnsafeMutableRawPointer?,
+            _ callError: UnsafeMutableRawPointer?
+        ) {
+            guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: \(firstDefaultIndex), maximum: \(parameterArray.count), error: callError, returnValue: returnValue) else { return }
+            \(invocation)
+        }
+        """
+
         if parameters.isEmpty {
             return """
             static func _mproxy_\(funcName)(pInstance: UnsafeRawPointer?, arguments: borrowing SwiftGodotRuntime.Arguments) -> SwiftGodotRuntime.FastVariant? {
             \(body)                
-            }\(ptrCallDecl)
+            }\(ptrCallDecl)\(callbackDecl)
             """
         } else {
             return """
@@ -135,7 +172,7 @@ public struct GodotCallable: PeerMacro {
                 }
             
                 return nil
-            }\(ptrCallDecl)
+            }\(ptrCallDecl)\(callbackDecl)
             """
         }
     }

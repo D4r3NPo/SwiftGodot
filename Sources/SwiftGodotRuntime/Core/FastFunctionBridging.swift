@@ -83,7 +83,7 @@ public func _registerPropertyWithGetterSetter(
 /// pointers (and the `Variant`s they reference) are only valid for the duration of `body`; Godot
 /// copies the default values into the method bind during registration. A `nil` entry is passed as a
 /// Godot `nil` `Variant`.
-private func withDefaultArgumentPointers<R>(
+func withDefaultArgumentPointers<R>(
     _ defaultArguments: [Variant?],
     _ body: (UnsafeMutablePointer<GDExtensionVariantPtr?>?, UInt32) -> R
 ) -> R {
@@ -217,21 +217,20 @@ public func _registerMethod(
 
 /// Internal API.
 /// Unwraps an `Object` from a native Godot object pointer.
-@inline(__always)
+@inlinable
+@inline(always)
 public func _unwrap<T: Object>(
     _ type: T.Type = T.self,
     pInstance: UnsafeRawPointer?
 ) -> T? {
-    guard let pInstance else {
-        return nil
-    }
-    
-    let ref = Unmanaged<WrappedReference>.fromOpaque(pInstance).takeUnretainedValue()
-    guard let object = ref.value as? T else {
-        return nil
-    }
-    
-    return object
+    guard let pInstance else { return nil }
+    return _unwrapInstance(pInstance) as? T
+}
+
+@usableFromInline
+func _unwrapInstance(_ pointer: UnsafeRawPointer) -> Wrapped? {
+    let reference = Unmanaged<WrappedReference>.fromOpaque(pointer).takeUnretainedValue()
+    return reference.value
 }
 
 private func call_func(
@@ -269,3 +268,96 @@ private func call_func(
     }
 }
 
+
+public func _registerSpecializedMethod(
+    className: StringName,
+    name: StringName,
+    flags: MethodFlags,
+    returnValue: PropInfo?,
+    arguments: [PropInfo],
+    defaultArguments: [Variant?] = [],
+    callFunction: @escaping GDExtensionClassMethodCall,
+    ptrFunction: GDExtensionClassMethodPtrCall? = nil
+) {
+    let argPtr = UnsafeMutablePointer<GDExtensionPropertyInfo>.allocate(capacity: arguments.count)
+    defer { argPtr.deallocate() }
+    let argMeta = UnsafeMutablePointer<GDExtensionClassMethodArgumentMetadata>.allocate(capacity: arguments.count)
+    defer { argMeta.deallocate() }
+    var i = 0
+    for arg in arguments {
+        argPtr [i] = arg.makeNativeStruct()
+        argMeta [i] = GDExtensionClassMethodArgumentMetadata(GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE.rawValue)
+        i += 1
+    }
+    let returnMeta = GDExtensionClassMethodArgumentMetadata(GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE.rawValue)
+    var retInfo = GDExtensionPropertyInfo ()
+    if let returnValue {
+        retInfo = returnValue.makeNativeStruct()
+    }
+    withExtendedLifetime((arguments, returnValue)) {
+    withDefaultArgumentPointers(defaultArguments) { defaultArgsPtr, defaultArgsCount in
+    withUnsafeMutablePointer(to: &name.content) { namePtr in
+        withUnsafeMutablePointer(to: &retInfo) { retInfoPtr in
+        var info = GDExtensionClassMethodInfo (
+            name: namePtr,
+            method_userdata: nil,
+            call_func: callFunction,
+            ptrcall_func: ptrFunction,
+            method_flags: UInt32 (flags.rawValue),
+            has_return_value: GDExtensionBool (returnValue != nil ? 1 : 0),
+            return_value_info: retInfoPtr,
+            return_value_metadata: returnMeta,
+            argument_count: UInt32(arguments.count),
+            arguments_info: argPtr,
+            arguments_metadata: argMeta, // GDExtensionClassMethodArgumentMetadata
+            default_argument_count: defaultArgsCount,
+            default_arguments: defaultArgsPtr) // GDExtensionVariantPtr)
+            withUnsafePointer(to: &className.content) { namePtr in
+                gi.classdb_register_extension_class_method (extensionInterface.getLibrary(), namePtr, &info)
+            }
+        }
+    }
+    }
+    }
+}
+
+/// A generated callback transfers its result without a closure dispatch or runtime
+/// return-type check. The Swift signature already checks the return type.
+@inline(always)
+@inlinable
+public func _writeCallResult(_ value: consuming FastVariant?, into target: UnsafeMutableRawPointer?) {
+    guard let target else { return }
+    if let value {
+        target.storeBytes(of: value.content, as: VariantContent.self)
+        value.unsafelyForget()
+    } else {
+        target.storeBytes(of: VariantContent.zero, as: VariantContent.self)
+    }
+}
+
+@inline(always)
+public func _callSucceeded(_ error: UnsafeMutableRawPointer?) {
+    error?.assumingMemoryBound(to: GDExtensionCallError.self).pointee = GDExtensionCallError(error: GDEXTENSION_CALL_OK, argument: 0, expected: 0)
+}
+
+@inline(always)
+public func _callFailed(_ error: UnsafeMutableRawPointer?, returnValue: UnsafeMutableRawPointer?) {
+    _writeCallResult(nil, into: returnValue)
+    error?.assumingMemoryBound(to: GDExtensionCallError.self).pointee = GDExtensionCallError(error: GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT, argument: 0, expected: 0)
+}
+
+@inline(always)
+public func _checkCallArgumentCount(_ count: Int64, minimum: Int64, maximum: Int64, error: UnsafeMutableRawPointer?, returnValue: UnsafeMutableRawPointer?) -> Bool {
+    if count >= minimum && count <= maximum { return true }
+    _writeCallResult(nil, into: returnValue)
+    error?.assumingMemoryBound(to: GDExtensionCallError.self).pointee = GDExtensionCallError(
+        error: count < minimum ? GDEXTENSION_CALL_ERROR_TOO_FEW_ARGUMENTS : GDEXTENSION_CALL_ERROR_TOO_MANY_ARGUMENTS,
+        argument: 0, expected: Int32(count < minimum ? minimum : maximum))
+    return false
+}
+
+@inline(always)
+public func _callInstanceMissing(_ error: UnsafeMutableRawPointer?, returnValue: UnsafeMutableRawPointer?) {
+    _writeCallResult(nil, into: returnValue)
+    error?.assumingMemoryBound(to: GDExtensionCallError.self).pointee = GDExtensionCallError(error: GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL, argument: 0, expected: 0)
+}

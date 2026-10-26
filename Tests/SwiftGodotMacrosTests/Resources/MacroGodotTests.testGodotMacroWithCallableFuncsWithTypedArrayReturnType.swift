@@ -12,6 +12,7 @@ class SomeNode: Node {
         return SwiftGodotRuntime._wrapCallableResult(object.getIntegerCollection())
 
     }
+    @inline(always)
     static func _pproxy_getIntegerCollection(        
     _ pInstance: UnsafeMutableRawPointer?,
     _ rargs: SwiftGodotRuntime.RawArguments,
@@ -22,6 +23,23 @@ class SomeNode: Node {
         }
         SwiftGodotRuntime.RawReturnWriter.writeResult(returnValue, object.getIntegerCollection()) 
 
+    }
+    @inline(always)
+    static func _vproxy_getIntegerCollection(
+        _ pInstance: UnsafeMutableRawPointer?,
+        _ variantArgs: UnsafePointer<UnsafeRawPointer?>?,
+        _ argc: Int64,
+        _ returnValue: UnsafeMutableRawPointer?,
+        _ callError: UnsafeMutableRawPointer?
+    ) {
+        guard SwiftGodotRuntime._checkCallArgumentCount(argc, minimum: 0, maximum: 0, error: callError, returnValue: returnValue) else { return }
+            guard let object = SwiftGodotRuntime._unwrap(self, pInstance: pInstance) else {
+            SwiftGodotRuntime.GD.printErr("Error calling `getIntegerCollection`: failed to unwrap instance \(String(describing: pInstance))")
+            SwiftGodotRuntime._callInstanceMissing(callError, returnValue: returnValue); return
+        }
+        SwiftGodotRuntime._writeCallResult(SwiftGodotRuntime._wrapCallableResult(object.getIntegerCollection()), into: returnValue)
+
+    SwiftGodotRuntime._callSucceeded(callError)
     }
 
     override open class var classInitializer: Void {
@@ -38,7 +56,7 @@ class SomeNode: Node {
             // ClassDB singleton is not available prior to `.scene` level
             assert(ClassDB.classExists(class: className))
         }
-        SwiftGodotRuntime._registerMethod(
+        SwiftGodotRuntime._registerSpecializedMethod(
             className: className,
             name: "getIntegerCollection",
             flags: .default,
@@ -46,15 +64,14 @@ class SomeNode: Node {
             arguments: [
 
             ],
-            function: SomeNode._mproxy_getIntegerCollection,
-            ptrFunction: { udata, classInstance, argsPtr, retValue in
-                guard let argsPtr else {
-                    GD.print("Godot is not passing the arguments");
-                    return
-                }
-                SomeNode._pproxy_getIntegerCollection (classInstance, RawArguments(args: argsPtr), retValue)
+            callFunction: { _, instance, args, count, result, error in
+                SomeNode._vproxy_getIntegerCollection(instance, args, count, result, error.map {
+                        UnsafeMutableRawPointer($0)
+                    })
+            },
+            ptrFunction: { _, instance, args, result in
+                SomeNode._pproxy_getIntegerCollection(instance, RawArguments(args: args), result)
             }
-
         )
     }
 }

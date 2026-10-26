@@ -1,9 +1,10 @@
-// swift-tools-version: 6.3
+// swift-tools-version: 6.4
 
 import CompilerPluginSupport
 import PackageDescription
 
 let withMultiProcessTrait = "with_multi_process"
+let testableTrait = "testable"
 
 // Products define the executables and libraries a package produces, and make them visible to other packages.
 var products: [Product] = [
@@ -218,6 +219,7 @@ var targets: [Target] = [
         name: "SwiftGodotRuntime",
         dependencies: ["GDExtension"],
         swiftSettings: [
+            .unsafeFlags(["-enable-testing"], .when(traits: [testableTrait])),
             .define("CUSTOM_BUILTIN_IMPLEMENTATIONS"),
             .define("SWIFTGODOT_WITH_MULTI_PROCESS", .when(traits: [withMultiProcessTrait])),
             .unsafeFlags(
@@ -250,6 +252,7 @@ var targets: [Target] = [
         dependencies: ["GDExtension", "SwiftGodotRuntime"],
         swiftSettings: [
             .swiftLanguageMode(.v5),
+            .unsafeFlags(["-enable-testing"], .when(traits: [testableTrait])),
             .define("CUSTOM_BUILTIN_IMPLEMENTATIONS"),
             .define("SWIFTGODOT_WITH_MULTI_PROCESS", .when(traits: [withMultiProcessTrait])),
             .unsafeFlags(["-suppress-warnings"]),
@@ -332,6 +335,7 @@ let package = Package(
     ],
     products: products,
     traits: [
+        .trait(name: testableTrait, description: "Expose internals for optimized integration tests."),
         .trait(
             name: withMultiProcessTrait,
             description: "Use multi-process-safe code generation with reinitialization support."

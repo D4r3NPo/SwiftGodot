@@ -34,10 +34,10 @@ public enum ClassBehavior: Int {
 ///
 /// - Parameter autoSnakeCase: if `true` (default value is `false`), the function name will be automatically translated from `camelCase` to `snake_case` when exposed to Godot. `
 ///
-@attached(peer, names: prefixed(_mproxy_), prefixed(_pproxy_))
+@attached(peer, names: prefixed(_mproxy_), prefixed(_pproxy_), prefixed(_vproxy_))
 public macro Callable(autoSnakeCase: Bool = false) = #externalMacro(module: "SwiftGodotMacroLibrary", type: "GodotCallable")
 /// - Parameter explicitName: This will be used as the function name exported to Godot exactly as written.
-@attached(peer, names: prefixed(_mproxy_), prefixed(_pproxy_))
+@attached(peer, names: prefixed(_mproxy_), prefixed(_pproxy_), prefixed(_vproxy_))
 public macro Callable(explicitName: String) = #externalMacro(module: "SwiftGodotMacroLibrary", type: "GodotCallable")
 
 /// Exposes a property or variable to the Godot runtime

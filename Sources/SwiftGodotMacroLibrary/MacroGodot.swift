@@ -93,17 +93,6 @@ class GodotMacroProcessor {
             return
         }
 
-        // Godot has two mechanisms to call function, one is its call_func that takes
-        // variants, and the other one is ptrcall that takes pointers to the contents of the
-        // variants.   Historically, SwiftGodot only supported the former for callbacks
-        // and we are slowly support for the rest - since we did not support static functions
-        // we can start testing there, and once it is done, we can turn this for everything.
-        var generatePtrCall = true
-
-        if funcDecl.hasClassOrStaticModifier {
-            generatePtrCall = true
-        }
-        
         let funcName = funcDecl.name.text
         
         let godotFuncName: String
@@ -162,7 +151,7 @@ class GodotMacroProcessor {
             flags = ".default"
         }
 
-        p("SwiftGodotRuntime._registerMethod", .parentheses) {
+        p("SwiftGodotRuntime._registerSpecializedMethod", .parentheses) {
             p("""
             className: className,
             name: "\(godotFuncName)", 
@@ -177,18 +166,16 @@ class GodotMacroProcessor {
                     p(defaultArguments)
                 }
             }
-            p(("function: \(className)._mproxy_\(funcName)") + (generatePtrCall ? "," : ""))
-            if generatePtrCall {
-                p("""
-                ptrFunction: { udata, classInstance, argsPtr, retValue in
-                    guard let argsPtr else { GD.print("Godot is not passing the arguments"); return } 
-                    \(className)._pproxy_\(funcName) (classInstance, RawArguments(args: argsPtr), retValue)
-                }
-                
-                """)
+            p("""
+            callFunction: { _, instance, args, count, result, error in
+                \(className)._vproxy_\(funcName)(instance, args, count, result, error.map { UnsafeMutableRawPointer($0) })
+            },
+            ptrFunction: { _, instance, args, result in
+                \(className)._pproxy_\(funcName)(instance, RawArguments(args: args), result)
             }
+            """)
         }
-        
+
         try checkNameCollision(godotFuncName, for: DeclSyntax(funcDecl))
     }
 

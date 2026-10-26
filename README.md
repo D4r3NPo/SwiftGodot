@@ -83,7 +83,7 @@ prebuilt Apple-platform package from
 iteration on macOS and iOS. See [Binary releases](BINARY_RELEASES.md) for the
 published slices and release process.
 
-SwiftGodot currently requires Swift 6.3.
+SwiftGodot currently requires Swift 6.4.
 
 # Working with this Repository
 
